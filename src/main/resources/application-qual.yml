@@ -1,0 +1,4 @@
+bp:
+  teams:
+    token-url: ${BP_TEAMS_QUAL_TOKEN_URL}
+    send-url: ${BP_TEAMS_QUAL_SEND_URL}
