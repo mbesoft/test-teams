@@ -1,10 +1,25 @@
+# Maven output
 target/
+!.mvn/wrapper/maven-wrapper.properties
+
+# IDE metadata
 .idea/
 *.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# Environment files and sensitive material
 .env
 .env.*
 !.env.example
 *.jks
 *.p12
+*.pfx
 *.pem
 *.key
+
+# Operating system and logs
+.DS_Store
+*.log

@@ -1,14 +1,19 @@
 spring:
   application:
     name: bp-teams-notifier
+  profiles:
+    # Running without an explicit profile is safe and uses local placeholders.
+    default: local
   main:
+    # This application exposes no inbound HTTP endpoint.
     web-application-type: none
+
 bp:
   teams:
-    token-url: ${BP_TEAMS_TOKEN_URL}
-    send-url: ${BP_TEAMS_SEND_URL}
-    client-id: ${BP_TEAMS_CLIENT_ID}
-    client-secret: ${BP_TEAMS_CLIENT_SECRET}
-    target-role: ${BP_TEAMS_TARGET_ROLE}
-    identity-header-name: ${BP_TEAMS_IDENTITY_HEADER_NAME}
-    apim-value: ${BP_TEAMS_APIM_VALUE}
+    # Sending is disabled unless an environment profile explicitly enables it.
+    enabled: false
+    identity-header-name: ${BP_TEAMS_IDENTITY_HEADER_NAME:X-App-Client}
+    target-role-header-name: TargetAppRole
+    apim-header-name: APIM
+    connect-timeout: 5s
+    read-timeout: 15s

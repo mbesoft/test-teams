@@ -1,4 +1,10 @@
+# Production environment: no endpoint or credential is checked into Git.
 bp:
   teams:
+    enabled: true
     token-url: ${BP_TEAMS_PROD_TOKEN_URL}
     send-url: ${BP_TEAMS_PROD_SEND_URL}
+    client-id: ${BP_TEAMS_CLIENT_ID}
+    client-secret: ${BP_TEAMS_CLIENT_SECRET}
+    target-role: ${BP_TEAMS_TARGET_ROLE}
+    apim-value: ${BP_TEAMS_APIM_VALUE}

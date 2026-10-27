@@ -1,0 +1,11 @@
+# Safe, offline-friendly profile. All values are synthetic placeholders.
+# Even if a service method is invoked, enabled=false prevents HTTP calls.
+bp:
+  teams:
+    enabled: false
+    token-url: https://example.invalid/oauth2/token
+    send-url: https://example.invalid/teams/send
+    client-id: local-placeholder-client
+    client-secret: local-placeholder-secret
+    target-role: local-placeholder-role
+    apim-value: local-placeholder
