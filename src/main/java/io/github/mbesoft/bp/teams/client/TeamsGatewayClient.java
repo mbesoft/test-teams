@@ -1,92 +1,115 @@
 package io.github.mbesoft.bp.teams.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.mbesoft.bp.teams.config.TeamsProperties;
 import io.github.mbesoft.bp.teams.model.AdaptiveCard;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.web.client.RestClient;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 /**
- * Implements the existing two-step gateway protocol:
- * 1) OAuth2 client_credentials token request with HTTP Basic authentication.
- * 2) Authenticated POST of an Adaptive Card to the channel gateway.
+ * Java 11 / Spring Boot 2.7-compatible gateway client.
  *
- * The gateway resolves the destination channel from the configured role.
- * This class does not call Microsoft Graph directly.
+ * Step 1: Request an OAuth2 token with the client_credentials grant.
+ * Step 2: Send an Adaptive Card with the bearer token and configured headers.
+ *
+ * This class never sends anything unless enabled is explicitly true.
  */
 @Component
 public class TeamsGatewayClient {
 
-    private final RestClient http;
+    private final RestTemplate http;
     private final TeamsProperties properties;
 
-    public TeamsGatewayClient(RestClient.Builder builder, TeamsProperties properties) {
+    public TeamsGatewayClient(TeamsProperties properties) {
         this.properties = properties;
 
-        // Keep TLS certificate validation enabled (the HTTP client default).
-        var requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(properties.connectTimeout());
-        requestFactory.setReadTimeout(properties.readTimeout());
-        this.http = builder.requestFactory(requestFactory).build();
+        // Leave normal TLS certificate verification enabled.
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Math.toIntExact(properties.getConnectTimeout().toMillis()));
+        factory.setReadTimeout(Math.toIntExact(properties.getReadTimeout().toMillis()));
+        this.http = new RestTemplate(factory);
     }
 
     /**
-     * Sending is explicitly disabled in the local profile. The guard runs
-     * before any attempt to fetch a token or open a network connection.
+     * The local configuration disables outbound calls by default.
+     * The check occurs before requesting any access token.
      */
     public void send(AdaptiveCard card) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             throw new TeamsGatewayException("Teams sending is disabled for the active profile");
         }
 
-        String accessToken = fetchAccessToken();
+        String token = fetchAccessToken();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.set(properties.getTargetRoleHeaderName(), properties.getTargetRole());
+        headers.set(properties.getIdentityHeaderName(), properties.getClientId());
+        headers.set(properties.getApimHeaderName(), properties.getApimValue());
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
         try {
-            http.post()
-                    .uri(properties.sendUrl())
-                    .headers(headers -> {
-                        headers.setBearerAuth(accessToken);
-                        headers.set(properties.targetRoleHeaderName(), properties.targetRole());
-                        headers.set(properties.identityHeaderName(), properties.clientId());
-                        headers.set(properties.apimHeaderName(), properties.apimValue());
-                    })
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(card)
-                    .retrieve()
-                    .toBodilessEntity();
+            // RestTemplate serializes the JavaBean payload using Jackson.
+            http.exchange(properties.getSendUrl(), HttpMethod.POST,
+                    new HttpEntity<AdaptiveCard>(card, headers), Void.class);
         } catch (RestClientException exception) {
-            // Never include response bodies, credentials or request headers in errors.
+            // Do not disclose credentials, access tokens or server response bodies.
             throw new TeamsGatewayException("The Teams gateway rejected the notification");
         }
     }
 
     private String fetchAccessToken() {
-        var form = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "client_credentials");
 
-        try {
-            TokenResponse token = http.post()
-                    .uri(properties.tokenUrl())
-                    .headers(headers -> headers.setBasicAuth(
-                            properties.clientId(), properties.clientSecret()))
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(form)
-                    .retrieve()
-                    .body(TokenResponse.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(properties.getClientId(), properties.getClientSecret());
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-            if (token == null || token.accessToken() == null
-                    || token.accessToken().isBlank()) {
+        try {
+            TokenResponse response = http.exchange(
+                    properties.getTokenUrl(), HttpMethod.POST,
+                    new HttpEntity<MultiValueMap<String, String>>(form, headers),
+                    TokenResponse.class).getBody();
+
+            if (response == null || response.getAccessToken() == null
+                    || response.getAccessToken().isBlank()) {
                 throw new TeamsGatewayException("The OAuth2 response did not contain an access token");
             }
-            return token.accessToken();
+            return response.getAccessToken();
         } catch (RestClientException exception) {
             throw new TeamsGatewayException("The OAuth2 token request failed");
         }
     }
 
-    /** Maps the OAuth2 access_token JSON property to a Java record. */
-    private record TokenResponse(@JsonProperty("access_token") String accessToken) {}
+    /**
+     * Jackson DTO for the OAuth2 response.
+     * Unknown fields (such as expires_in) are safely ignored.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class TokenResponse {
+
+        @JsonProperty("access_token")
+        private String accessToken;
+
+        public TokenResponse() {
+        }
+
+        public String getAccessToken() {
+            return accessToken;
+        }
+
+        public void setAccessToken(String accessToken) {
+            this.accessToken = accessToken;
+        }
+    }
 }

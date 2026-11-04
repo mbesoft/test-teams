@@ -1,55 +1,152 @@
 package io.github.mbesoft.bp.teams.config;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.net.URI;
 import java.time.Duration;
 
 /**
- * Maps the bp.teams YAML properties to a strongly typed configuration object.
- * Secrets must be provided at runtime for qualification and production.
+ * External configuration for the Teams HTTP client.
+ *
+ * JavaBean binding is used for compatibility with Spring Boot 2.7 and Java 11.
+ * Never store production credentials or internal URLs in source control.
  */
 @Validated
 @ConfigurationProperties(prefix = "bp.teams")
-public record TeamsProperties(
-        boolean enabled,
-        @NotNull URI tokenUrl,
-        @NotNull URI sendUrl,
-        @NotBlank String clientId,
-        @NotBlank String clientSecret,
-        @NotBlank String targetRole,
-        @NotBlank String identityHeaderName,
-        @NotBlank String targetRoleHeaderName,
-        @NotBlank String apimHeaderName,
-        @NotBlank String apimValue,
-        @DefaultValue("5s") Duration connectTimeout,
-        @DefaultValue("15s") Duration readTimeout
-) {
-    public TeamsProperties {
-        // Reject unencrypted destinations before Spring starts the client.
-        if (tokenUrl != null && (!"https".equalsIgnoreCase(tokenUrl.getScheme())
-                || tokenUrl.getHost() == null)) {
-            throw new IllegalArgumentException("The token URL must be an absolute HTTPS URL");
+public class TeamsProperties {
+
+    private boolean enabled;
+
+    @NotNull
+    private URI tokenUrl;
+
+    @NotNull
+    private URI sendUrl;
+
+    @NotBlank
+    private String clientId;
+
+    @NotBlank
+    private String clientSecret;
+
+    @NotBlank
+    private String targetRole;
+
+    @NotBlank
+    private String identityHeaderName;
+
+    @NotBlank
+    private String targetRoleHeaderName;
+
+    @NotBlank
+    private String apimHeaderName;
+
+    @NotBlank
+    private String apimValue;
+
+    private Duration connectTimeout = Duration.ofSeconds(5);
+    private Duration readTimeout = Duration.ofSeconds(15);
+
+    /** Required by Spring Boot's JavaBean property binder. */
+    public TeamsProperties() {
+    }
+
+    /** Convenient constructor for isolated unit tests. */
+    public TeamsProperties(boolean enabled, URI tokenUrl, URI sendUrl,
+                           String clientId, String clientSecret, String targetRole,
+                           String identityHeaderName, String targetRoleHeaderName,
+                           String apimHeaderName, String apimValue,
+                           Duration connectTimeout, Duration readTimeout) {
+        setEnabled(enabled);
+        setTokenUrl(tokenUrl);
+        setSendUrl(sendUrl);
+        setClientId(clientId);
+        setClientSecret(clientSecret);
+        setTargetRole(targetRole);
+        setIdentityHeaderName(identityHeaderName);
+        setTargetRoleHeaderName(targetRoleHeaderName);
+        setApimHeaderName(apimHeaderName);
+        setApimValue(apimValue);
+        setConnectTimeout(connectTimeout);
+        setReadTimeout(readTimeout);
+    }
+
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+    public URI getTokenUrl() { return tokenUrl; }
+    public void setTokenUrl(URI tokenUrl) {
+        requireHttps(tokenUrl, "token-url");
+        this.tokenUrl = tokenUrl;
+    }
+
+    public URI getSendUrl() { return sendUrl; }
+    public void setSendUrl(URI sendUrl) {
+        requireHttps(sendUrl, "send-url");
+        this.sendUrl = sendUrl;
+    }
+
+    public String getClientId() { return clientId; }
+    public void setClientId(String clientId) { this.clientId = clientId; }
+
+    public String getClientSecret() { return clientSecret; }
+    public void setClientSecret(String clientSecret) { this.clientSecret = clientSecret; }
+
+    public String getTargetRole() { return targetRole; }
+    public void setTargetRole(String targetRole) { this.targetRole = targetRole; }
+
+    public String getIdentityHeaderName() { return identityHeaderName; }
+    public void setIdentityHeaderName(String name) {
+        requireHeaderName(name);
+        this.identityHeaderName = name;
+    }
+
+    public String getTargetRoleHeaderName() { return targetRoleHeaderName; }
+    public void setTargetRoleHeaderName(String name) {
+        requireHeaderName(name);
+        this.targetRoleHeaderName = name;
+    }
+
+    public String getApimHeaderName() { return apimHeaderName; }
+    public void setApimHeaderName(String name) {
+        requireHeaderName(name);
+        this.apimHeaderName = name;
+    }
+
+    public String getApimValue() { return apimValue; }
+    public void setApimValue(String apimValue) { this.apimValue = apimValue; }
+
+    public Duration getConnectTimeout() { return connectTimeout; }
+    public void setConnectTimeout(Duration timeout) {
+        requirePositive(timeout, "connect-timeout");
+        this.connectTimeout = timeout;
+    }
+
+    public Duration getReadTimeout() { return readTimeout; }
+    public void setReadTimeout(Duration timeout) {
+        requirePositive(timeout, "read-timeout");
+        this.readTimeout = timeout;
+    }
+
+    private static void requireHttps(URI uri, String property) {
+        if (uri != null && (!"https".equalsIgnoreCase(uri.getScheme())
+                || uri.getHost() == null)) {
+            throw new IllegalArgumentException(property + " must be an absolute HTTPS URL");
         }
-        if (sendUrl != null && (!"https".equalsIgnoreCase(sendUrl.getScheme())
-                || sendUrl.getHost() == null)) {
-            throw new IllegalArgumentException("The send URL must be an absolute HTTPS URL");
+    }
+
+    private static void requireHeaderName(String name) {
+        if (name != null && !name.matches("[A-Za-z0-9-]+")) {
+            throw new IllegalArgumentException("An invalid HTTP header name was configured");
         }
-        if (connectTimeout != null && (connectTimeout.isZero() || connectTimeout.isNegative())) {
-            throw new IllegalArgumentException("The connection timeout must be positive");
-        }
-        if (readTimeout != null && (readTimeout.isZero() || readTimeout.isNegative())) {
-            throw new IllegalArgumentException("The read timeout must be positive");
-        }
-        // Header names are configurable, but must not contain arbitrary content.
-        for (String header : new String[]{identityHeaderName, targetRoleHeaderName, apimHeaderName}) {
-            if (header != null && !header.matches("[A-Za-z0-9-]+")) {
-                throw new IllegalArgumentException("An invalid HTTP header name was configured");
-            }
+    }
+
+    private static void requirePositive(Duration timeout, String name) {
+        if (timeout == null || timeout.isNegative() || timeout.isZero()) {
+            throw new IllegalArgumentException(name + " must be positive");
         }
     }
 }
