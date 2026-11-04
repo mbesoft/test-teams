@@ -1,6 +1,8 @@
 # bp-teams-notifier
 
-A standard **Spring Initializr-style Maven project** using **Java 17** and **Spring Boot 3.5.7**. It publishes Microsoft Teams channel notifications through an existing OAuth2-secured HTTP gateway. There is no Teams-specific SDK and no direct Microsoft Graph integration.
+A standard Maven / Spring Boot project targeting **Java 11** with **Spring Boot 2.7.18**. It sends Microsoft Teams channel notifications via an existing OAuth2-secured HTTP gateway, without using Microsoft Graph or any Teams-specific SDK.
+
+> **Lifecycle notice:** Spring Boot 2.7 has reached the end of open-source support. This version is used to satisfy the Java 11 requirement. Plan an upgrade to a supported Java and Spring Boot release in production where possible, or use your organization's approved extended-support distribution.
 
 ## Project layout
 
@@ -10,111 +12,113 @@ bp-teams-notifier/
 ├── mvnw
 ├── mvnw.cmd
 ├── pom.xml
-├── .gitignore
-├── .gitattributes
-├── .env.example
-├── src/
-│   ├── main/
-│   │   ├── java/io/github/mbesoft/bp/teams/
-│   │   │   ├── BpTeamsApplication.java
-│   │   │   ├── card/AdaptiveCardFactory.java
-│   │   │   ├── client/TeamsGatewayClient.java
-│   │   │   ├── client/TeamsGatewayException.java
-│   │   │   ├── config/TeamsProperties.java
-│   │   │   ├── model/
-│   │   │   └── service/TeamsNotificationService.java
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       ├── application-local.yml
-│   │       ├── application-qual.yml
-│   │       └── application-prod.yml
-│   └── test/java/io/github/mbesoft/bp/teams/
-│       ├── AdaptiveCardFactoryTest.java
-│       ├── TeamsNotificationServiceTest.java
-│       └── TeamsGatewayClientTest.java
+├── README.md
+└── src/
+    ├── main/
+    │   ├── java/io/github/mbesoft/bp/teams/
+    │   │   ├── BpTeamsApplication.java
+    │   │   ├── card/AdaptiveCardFactory.java
+    │   │   ├── client/
+    │   │   │   ├── TeamsGatewayClient.java
+    │   │   │   └── TeamsGatewayException.java
+    │   │   ├── config/TeamsProperties.java
+    │   │   ├── model/
+    │   │   │   ├── AdaptiveCard.java
+    │   │   │   ├── CampaignNotification.java
+    │   │   │   ├── TextBlock.java
+    │   │   │   └── OpenUrlAction.java
+    │   │   ├── runner/LocalTeamsRunner.java
+    │   │   └── service/TeamsNotificationService.java
+    │   └── resources/
+    │       ├── application.yml
+    │       ├── application-local.yml
+    │       ├── application-qual.yml
+    │       └── application-prod.yml
+    └── test/java/io/github/mbesoft/bp/teams/
+        ├── AdaptiveCardFactoryTest.java
+        ├── TeamsGatewayClientTest.java
+        └── TeamsNotificationServiceTest.java
 ```
 
-## How it works
+## Java 11 compatibility
 
-1. A Spring business component calls `TeamsNotificationService.sendCampaign(...)`.
-2. `AdaptiveCardFactory` creates a typed Adaptive Card with title, stage, instructions, due date and an **OPEN IN BP** action.
-3. `TeamsGatewayClient` obtains an OAuth2 token using the `client_credentials` grant and HTTP Basic authentication.
-4. The client posts the card JSON with a bearer token and the gateway-specific headers.
-5. The gateway uses the configured **TargetAppRole** to determine the destination channel.
+- Java 11 bytecode is enforced in `pom.xml` with `maven.compiler.release=11`.
+- Spring Boot 2.7.18 uses Spring Framework 5.3 and `javax.validation` annotations.
+- `RestTemplate` implements the OAuth2 request and JSON notification POST; `RestClient` is not available in this Spring generation.
+- Immutable JavaBean-style DTOs replace Java `record` types, which are not available in Java 11.
+- Jackson serializes the Adaptive Card into JSON. The optional `$schema` field is not included in the current repository version.
 
-The optional `$schema` property is intentionally absent. Jackson serializes the Java records to JSON without downloading an Adaptive Cards library or schema.
+## Notification flow
 
-## Profiles
+1. A business component calls `TeamsNotificationService.sendCampaign(notification)`.
+2. `AdaptiveCardFactory` constructs the card in memory.
+3. `TeamsGatewayClient` requests an OAuth2 access token using `client_credentials` and HTTP Basic authentication.
+4. The client sends the JSON card and the configured authorization/routing headers.
+5. The gateway determines the channel using the configured target role.
 
-| Profile | File | Behavior |
+## Spring profiles
+
+| Profile | Configuration file | Behavior |
 | --- | --- | --- |
-| `local` | `application-local.yml` | Default. Uses synthetic `example.invalid` URLs. **Sending is disabled.** |
-| `qual` | `application-qual.yml` | Uses environment-provided qualification endpoints and credentials. Sending enabled. |
-| `prod` | `application-prod.yml` | Uses environment-provided production endpoints and credentials. Sending enabled. |
+| `local` | `application-local.yml` | Default; synthetic values and sending disabled |
+| `qual` | `application-qual.yml` | Runtime-provided qualification configuration |
+| `prod` | `application-prod.yml` | Runtime-provided production configuration |
 
-Common settings, including timeouts and gateway header names, are in `application.yml`. If no profile is selected, Spring uses `local`.
+Shared configuration is in `application.yml`. No real credentials or internal URLs should be checked into Git.
 
-### Environment variables
+### Runtime configuration
 
-For `qual` and `prod`, provide the following via your approved secret manager or process environment:
+Use your secret manager or the deployment environment to provide:
 
-- `BP_TEAMS_CLIENT_ID`: OAuth2 client ID.
+- `BP_TEAMS_CLIENT_ID`: OAuth2 client identifier.
 - `BP_TEAMS_CLIENT_SECRET`: OAuth2 client secret.
-- `BP_TEAMS_TARGET_ROLE`: routing role for the Teams channel.
-- `BP_TEAMS_IDENTITY_HEADER_NAME`: optional override of the application identity header name.
-- `BP_TEAMS_APIM_VALUE`: gateway APIM header value.
-- `BP_TEAMS_QUAL_TOKEN_URL` and `BP_TEAMS_QUAL_SEND_URL`: qualification endpoints.
-- `BP_TEAMS_PROD_TOKEN_URL` and `BP_TEAMS_PROD_SEND_URL`: production endpoints.
+- `BP_TEAMS_TARGET_ROLE`: gateway routing role.
+- `BP_TEAMS_IDENTITY_HEADER_NAME`: the expected application-identity header name.
+- `BP_TEAMS_APIM_VALUE`: API routing header value.
+- `BP_TEAMS_QUAL_TOKEN_URL`, `BP_TEAMS_QUAL_SEND_URL`: qualification destinations.
+- `BP_TEAMS_PROD_TOKEN_URL`, `BP_TEAMS_PROD_SEND_URL`: production destinations.
 
-The application identity header name is configurable; no organization-specific name appears in source control. The identity header value is the configured client ID. Do not commit secrets, tokens, internal endpoints, certificate files or local `.env` files.
+The application identity header value comes from the configured client ID. TLS certificate verification remains enabled.
 
-## Build and run
+## Build and isolated unit tests
 
-Requires JDK 17 or newer. The checked-in Maven Wrapper can download the specified Maven distribution from Maven Central if Maven is not already installed.
+Java 11 and Maven 3.8+ are required. Alternatively, use the included Maven Wrapper.
 
 ```bash
-# Build and run offline-only unit tests (no gateway calls):
+java -version
 ./mvnw clean verify
-
-# Start in the safe local profile:
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
-
-# Start in qualification only when explicitly authorized and configured:
-./mvnw spring-boot:run -Dspring-boot.run.profiles=qual
 ```
 
-On Windows, use `mvnw.cmd` instead of `./mvnw`.
+The existing tests are isolated unit tests: they do not call OAuth2, the Teams gateway, or any other external endpoint.
 
-The application runs as a non-web Spring Boot process; it does not expose a REST endpoint and does **not** automatically publish messages at startup.
+## Running locally
 
-### Calling the service from another Spring bean
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+The `LocalTeamsRunner` bean exists only with the `local` profile **and** `bp.teams.enabled=true`. With the default `enabled=false`, startup does not attempt to send a message. **If you enable sending for the local profile, the runner initiates a real notification on every application startup.** Do not enable it without authorization.
+
+The application is configured as a non-web Spring Boot process; it exposes no inbound HTTP endpoint.
+
+### Calling from another Spring component
 
 ```java
-@Service
-class CampaignWorkflow {
-    private final TeamsNotificationService notifications;
-
-    CampaignWorkflow(TeamsNotificationService notifications) {
-        this.notifications = notifications;
-    }
-
-    void notifyReviewers() {
-        notifications.sendCampaign(new CampaignNotification(
-            "Campaign 2026", "Open", "Please complete your review",
-            LocalDate.of(2026, 10, 31),
-            URI.create("https://example.invalid/campaign/42")
-        ));
-    }
-}
+notifications.sendCampaign(new CampaignNotification(
+        "Campaign 2026",
+        "Open",
+        "Please complete your review",
+        LocalDate.of(2026, 10, 31),
+        URI.create("https://example.invalid/campaign/42")
+));
 ```
 
-The example URL and data are synthetic and are not executed.
+This example contains only synthetic data. It is never executed by the documentation.
 
-## Security notes
+## Security
 
-- TLS verification remains enabled. Configure a Java truststore if an approved private certificate authority is required.
-- The `local` profile rejects send attempts **before** the first network request.
-- Both OAuth2 and notification errors are reduced to safe application messages; raw response bodies and bearer tokens are not logged.
-- The gateway request headers and routing contract must be verified with the gateway's owner before production deployment.
-- Tokens are requested for each send, matching the simple reference flow. Token caching or retry policies can be added later if required.
-- Unit tests use synthetic data and Mockito mocks; **no real credentials or external Teams calls were used to create this project**.
+- Do not commit secrets, real gateway URLs, tokens or internal certificates.
+- Keep `.env` files, private keys and truststores outside source control.
+- Failed gateway requests are wrapped in safe exceptions without logging credentials or raw response bodies.
+- TLS verification stays enabled; install an approved internal truststore when required.
+- No live integration requests were made during the Java 11 migration.

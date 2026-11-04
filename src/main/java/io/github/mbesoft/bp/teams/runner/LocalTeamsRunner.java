@@ -4,6 +4,7 @@ import io.github.mbesoft.bp.teams.model.CampaignNotification;
 import io.github.mbesoft.bp.teams.service.TeamsNotificationService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -11,14 +12,16 @@ import java.net.URI;
 import java.time.LocalDate;
 
 /**
- * Sends one sample campaign notification when the local profile starts.
+ * Optional local integration runner.
  *
- * IMPORTANT: This runner executes on every startup with the "local" profile.
- * A real request is attempted only when bp.teams.enabled=true.
- * The destination URL for the card button below is intentionally fictitious.
+ * This bean is created only when the "local" profile is active AND
+ * bp.teams.enabled=true. The default local profile never sends anything.
+ *
+ * IMPORTANT: Enabling this runner causes one real send attempt at every startup.
  */
 @Component
 @Profile("local")
+@ConditionalOnProperty(prefix = "bp.teams", name = "enabled", havingValue = "true")
 public class LocalTeamsRunner implements ApplicationRunner {
 
     private final TeamsNotificationService teamsService;
@@ -29,7 +32,7 @@ public class LocalTeamsRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        // Build a sample notification without embedding any internal URLs or credentials.
+        // Only synthetic values are stored in source control.
         CampaignNotification notification = new CampaignNotification(
                 "BP - Local Integration Test",
                 "Open",
@@ -38,7 +41,7 @@ public class LocalTeamsRunner implements ApplicationRunner {
                 URI.create("https://example.invalid/test")
         );
 
-        // Trigger the existing OAuth2 and Teams gateway workflow.
+        // This call executes only after the user explicitly enables sending.
         teamsService.sendCampaign(notification);
     }
 }
