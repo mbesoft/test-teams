@@ -1,0 +1,368 @@
+{
+  "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.2",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "BROKER VOTING  /  Q4 2026",
+      "size": "Small",
+      "color": "Accent",
+      "weight": "Bolder"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Broker Evaluation Campaign",
+      "size": "ExtraLarge",
+      "weight": "Bolder",
+      "wrap": true,
+      "spacing": "Small"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Review the voting progress across desks and complete outstanding broker evaluations.",
+      "wrap": true,
+      "isSubtle": true,
+      "spacing": "Small"
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "CAMPAIGN STATUS",
+              "size": "Small",
+              "isSubtle": true
+            },
+            {
+              "type": "TextBlock",
+              "text": "VOTING OPEN",
+              "color": "Good",
+              "weight": "Bolder"
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "DEADLINE",
+              "size": "Small",
+              "isSubtle": true,
+              "horizontalAlignment": "Right"
+            },
+            {
+              "type": "TextBlock",
+              "text": "30 Nov 2026",
+              "weight": "Bolder",
+              "horizontalAlignment": "Right"
+            }
+          ]
+        }
+      ],
+      "separator": true,
+      "spacing": "Medium"
+    },
+    {
+      "type": "TextBlock",
+      "text": "VOTING UNITS (3)",
+      "size": "Medium",
+      "weight": "Bolder",
+      "separator": true,
+      "spacing": "Large"
+    },
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "spacing": "Medium",
+      "items": [
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "FX Trading Desk",
+                  "size": "Medium",
+                  "weight": "Bolder",
+                  "wrap": true
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "VOTING OPEN",
+                  "color": "Good",
+                  "weight": "Bolder",
+                  "size": "Small",
+                  "horizontalAlignment": "Right",
+                  "wrap": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "TextBlock",
+          "text": "VOTE COMPLETION",
+          "size": "Small",
+          "isSubtle": true,
+          "spacing": "Medium"
+        },
+        {
+          "type": "RichTextBlock",
+          "spacing": "Small",
+          "inlines": [
+            {
+              "type": "TextRun",
+              "text": "███████",
+              "color": "Good"
+            },
+            {
+              "type": "TextRun",
+              "text": "███",
+              "color": "Warning"
+            }
+          ]
+        },
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "70% done",
+                  "color": "Good",
+                  "weight": "Bolder",
+                  "size": "Small"
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "30% pending",
+                  "color": "Warning",
+                  "weight": "Bolder",
+                  "size": "Small",
+                  "horizontalAlignment": "Right"
+                }
+              ]
+            }
+          ],
+          "spacing": "Small"
+        },
+        {
+          "type": "ActionSet",
+          "spacing": "Medium",
+          "actions": [
+            {
+              "type": "Action.OpenUrl",
+              "title": "Open",
+              "url": "https://example.com/campaigns/CAMP-2026-Q4/units/fx"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "spacing": "Medium",
+      "items": [
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "Equities Desk",
+                  "size": "Medium",
+                  "weight": "Bolder",
+                  "wrap": true
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "VOTING OPEN",
+                  "color": "Good",
+                  "weight": "Bolder",
+                  "size": "Small",
+                  "horizontalAlignment": "Right",
+                  "wrap": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "TextBlock",
+          "text": "VOTE COMPLETION",
+          "size": "Small",
+          "isSubtle": true,
+          "spacing": "Medium"
+        },
+        {
+          "type": "RichTextBlock",
+          "spacing": "Small",
+          "inlines": [
+            {
+              "type": "TextRun",
+              "text": "████",
+              "color": "Good"
+            },
+            {
+              "type": "TextRun",
+              "text": "██████",
+              "color": "Warning"
+            }
+          ]
+        },
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "40% done",
+                  "color": "Good",
+                  "weight": "Bolder",
+                  "size": "Small"
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "60% pending",
+                  "color": "Warning",
+                  "weight": "Bolder",
+                  "size": "Small",
+                  "horizontalAlignment": "Right"
+                }
+              ]
+            }
+          ],
+          "spacing": "Small"
+        },
+        {
+          "type": "ActionSet",
+          "spacing": "Medium",
+          "actions": [
+            {
+              "type": "Action.OpenUrl",
+              "title": "Open",
+              "url": "https://example.com/campaigns/CAMP-2026-Q4/units/equities"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "spacing": "Medium",
+      "items": [
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "Credit Desk",
+                  "size": "Medium",
+                  "weight": "Bolder",
+                  "wrap": true
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "COMPLETED",
+                  "color": "Accent",
+                  "weight": "Bolder",
+                  "size": "Small",
+                  "horizontalAlignment": "Right",
+                  "wrap": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "TextBlock",
+          "text": "Voting is complete for this unit.",
+          "isSubtle": true,
+          "spacing": "Small",
+          "wrap": true
+        },
+        {
+          "type": "ActionSet",
+          "spacing": "Medium",
+          "actions": [
+            {
+              "type": "Action.OpenUrl",
+              "title": "Open",
+              "url": "https://example.com/campaigns/CAMP-2026-Q4/units/credit"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "Select a voting unit to review its broker evaluations, or open the full campaign.",
+      "size": "Small",
+      "isSubtle": true,
+      "wrap": true,
+      "spacing": "Medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open Campaign",
+      "url": "https://example.com/campaigns/CAMP-2026-Q4"
+    }
+  ]
+}
