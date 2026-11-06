@@ -1,5 +1,6 @@
 package io.github.mbesoft.bp.teams;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.mbesoft.bp.teams.client.TeamsGatewayClient;
 import io.github.mbesoft.bp.teams.client.TeamsGatewayException;
 import io.github.mbesoft.bp.teams.config.TeamsProperties;
@@ -26,6 +27,11 @@ class TeamsGatewayClientTest {
         TeamsGatewayClient client = new TeamsGatewayClient(properties);
 
         assertThatThrownBy(() -> client.send(null))
+                .isInstanceOf(TeamsGatewayException.class)
+                .hasMessageContaining("disabled");
+
+        assertThatThrownBy(() ->
+                client.sendJsonCard(new ObjectMapper().createObjectNode()))
                 .isInstanceOf(TeamsGatewayException.class)
                 .hasMessageContaining("disabled");
     }
