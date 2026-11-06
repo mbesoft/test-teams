@@ -2,6 +2,7 @@ package io.github.mbesoft.bp.teams.client;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.github.mbesoft.bp.teams.config.TeamsProperties;
 import io.github.mbesoft.bp.teams.model.AdaptiveCard;
 import org.springframework.http.HttpEntity;
@@ -44,6 +45,21 @@ public class TeamsGatewayClient {
      * The check occurs before requesting any access token.
      */
     public void send(AdaptiveCard card) {
+        sendPayload(card);
+    }
+
+    /**
+     * Send a JSON Adaptive Card (e.g. one containing ColumnSets and nested ActionSets).
+     * The existing send(AdaptiveCard) API and OAuth2 gateway behavior are preserved.
+     */
+    public void sendJsonCard(JsonNode card) {
+        if (card == null || !card.isObject()) {
+            throw new IllegalArgumentException("Adaptive Card must be a JSON object");
+        }
+        sendPayload(card);
+    }
+
+    private void sendPayload(Object card) {
         if (!properties.isEnabled()) {
             throw new TeamsGatewayException("Teams sending is disabled for the active profile");
         }
@@ -60,7 +76,7 @@ public class TeamsGatewayClient {
         try {
             // RestTemplate serializes the JavaBean payload using Jackson.
             http.exchange(properties.getSendUrl(), HttpMethod.POST,
-                    new HttpEntity<AdaptiveCard>(card, headers), Void.class);
+                    new HttpEntity<Object>(card, headers), Void.class);
         } catch (RestClientException exception) {
             // Do not disclose credentials, access tokens or server response bodies.
             throw new TeamsGatewayException("The Teams gateway rejected the notification");
