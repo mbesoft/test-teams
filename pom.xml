@@ -44,6 +44,19 @@
     </dependencies>
 
     <build>
+        <resources>
+            <!-- Keep the root Designer JSON as the single runtime template. -->
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${project.basedir}</directory>
+                <includes>
+                    <include>broker-voting-campaign-adaptive-card.json</include>
+                </includes>
+                <targetPath>cards</targetPath>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
