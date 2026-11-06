@@ -122,3 +122,69 @@ This example contains only synthetic data. It is never executed by the documenta
 - Failed gateway requests are wrapped in safe exceptions without logging credentials or raw response bodies.
 - TLS verification stays enabled; install an approved internal truststore when required.
 - No live integration requests were made during the Java 11 migration.
+
+## Dynamic campaign overview card (opt-in)
+
+The designer-ready [broker-voting-campaign-adaptive-card.json](broker-voting-campaign-adaptive-card.json)
+at the repository root is the **single source of truth** for the card layout.
+Maven copies it into the application classpath at
+`cards/broker-voting-campaign-adaptive-card.json`; no second JSON template is maintained.
+
+The new `CampaignOverviewNotificationService` creates a card containing any number
+of voting units with status and an **Open** button per unit, plus an
+**Open Campaign** button. Units with status `VOTING_OPEN` display
+`donePercentage` and the derived `100 - donePercentage` pending percentage.
+Non-open units only display their status. The progress bar uses ten approximate
+visual blocks, while the numeric percentages remain exact.
+
+Example, from a Spring-managed component with an injected
+`CampaignOverviewNotificationService overviewService`:
+
+```java
+CampaignNotification campaign = new CampaignNotification(
+        "Broker Evaluation Campaign",
+        "Voting Open",
+        "Review outstanding broker evaluations.",
+        LocalDate.of(2026, 11, 30),
+        URI.create("https://example.invalid/campaign/42")
+);
+
+CampaignOverviewNotification overview = new CampaignOverviewNotification(
+        campaign,
+        List.of(
+                new VotingUnitSummary("FX Trading Desk", VotingUnitStatus.VOTING_OPEN,
+                        70, URI.create("https://example.invalid/campaign/42/fx")),
+                new VotingUnitSummary("Equities Desk", VotingUnitStatus.VOTING_OPEN,
+                        40, URI.create("https://example.invalid/campaign/42/equities")),
+                new VotingUnitSummary("Credit Desk", VotingUnitStatus.COMPLETED,
+                        null, URI.create("https://example.invalid/campaign/42/credit"))
+        )
+);
+
+overviewService.sendCampaignOverview(overview);
+```
+
+Imports: `java.net.URI`, `java.time.LocalDate`, `java.util.List`, and
+`io.github.mbesoft.bp.teams.model.*`. Replace the synthetic HTTPS links
+and sample data with authorized values in your BP application.
+
+### Backwards compatibility and routing
+
+- `TeamsNotificationService.sendCampaign(CampaignNotification)` and the original
+  `AdaptiveCardFactory` remain unchanged.
+- `TeamsGatewayClient.send(AdaptiveCard)` still works as before. The new
+  `sendJsonCard(JsonNode)` reuses the **same OAuth2 token exchange, gateway URL,
+  TargetAppRole, headers, timeouts and enabled flag**.
+- The current `TargetAppRole` selects a destination through the existing
+  gateway. The overview is **one message for the configured channel**, not
+  individual per-user routing or mentions.
+- Validate nested `Container`, `ColumnSet`, `RichTextBlock` and
+  `ActionSet` support with the actual gateway/Teams connector; this project
+  does not make live calls in tests.
+- `bp.teams.enabled=false` still prevents outbound sending in the local
+  profile. The new service does not register a startup runner or scheduler.
+
+To run the full unit test suite with Java 11 and Maven:
+```bash
+./mvnw clean verify
+```
